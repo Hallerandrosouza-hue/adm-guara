@@ -1,0 +1,115 @@
+# ============================================
+# Guará Manager - Docker Compose
+# ============================================
+version: "3.8"
+
+services:
+  # ---- PostgreSQL Database ----
+  postgres:
+    image: postgres:16-alpine
+    container_name: guara_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-guara}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guara_secret_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-guara_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guara}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - guara_network
+
+  # ---- Redis Cache ----
+  redis:
+    image: redis:7-alpine
+    container_name: guara_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - guara_network
+
+  # ---- MinIO (S3-Compatible Storage) ----
+  minio:
+    image: minio/minio:latest
+    container_name: guara_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-guara_minio}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-guara_minio_secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - guara_network
+
+  # ---- Backend (FastAPI) ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: guara_backend
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/alembic:/app/alembic
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guara_network
+
+  # ---- Frontend (Next.js) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: guara_frontend
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - guara_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  guara_network:
+    driver: bridge

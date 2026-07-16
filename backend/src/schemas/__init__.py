@@ -1,0 +1,1 @@
+# Guará Manager - Schemas Package
