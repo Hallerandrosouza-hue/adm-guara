@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Settings, LogOut, ChevronLeft, ChevronRight, UserCircle, Landmark, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { useState } from "react";
@@ -12,6 +12,9 @@ const navItems = [
   { name: "Projetos", href: "/projects", icon: FolderKanban },
   { name: "Tarefas", href: "/tasks", icon: CheckSquare },
   { name: "CRM", href: "/crm", icon: Users },
+  { name: "Recursos Humanos", href: "/hr", icon: UserCircle },
+  { name: "Financeiro", href: "/finance", icon: Landmark },
+  { name: "Sites", href: "/sites", icon: Globe },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];
 
@@ -29,7 +32,7 @@ export function Sidebar() {
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
         {!collapsed && (
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500 truncate">
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-500 truncate">
             Guará Manager
           </span>
         )}

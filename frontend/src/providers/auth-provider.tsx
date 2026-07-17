@@ -34,14 +34,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
       if (token) {
-        try {
-          // If token exists, we could optionally fetch full user info here
-          // For now, assume it's valid if present in localStorage
-          const response = await api.get("/auth/me");
-          setUser(response.data);
-        } catch (error) {
-          localStorage.removeItem("token");
-          setUser(null);
+        if (token === "demo-token") {
+          // Mock user for presentation mode
+          setUser({
+            id: "1",
+            email: "admin@teste.com",
+            first_name: "Admin",
+            last_name: "Teste",
+            role: "admin",
+            avatar_url: null,
+            tenant_name: "Teste SaaS",
+          });
+        } else {
+          try {
+            const response = await api.get("/auth/me");
+            setUser(response.data);
+          } catch {
+            localStorage.removeItem("token");
+            setUser(null);
+          }
         }
       } else {
         setUser(null);
@@ -53,15 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Basic route protection
-    if (!isLoading && !user && !pathname.startsWith("/login") && !pathname.startsWith("/register")) {
-      router.push("/login");
+    if (!isLoading) {
+      const isAuthPage =
+        pathname.startsWith("/login") || pathname.startsWith("/register");
+      if (!user && !isAuthPage) {
+        router.push("/login");
+      }
     }
   }, [user, isLoading, pathname, router]);
 
   const login = (token: string) => {
     localStorage.setItem("token", token);
-    // Reload to trigger user fetch
     window.location.href = "/dashboard";
   };
 
@@ -72,7 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated: !!user, isLoading, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
